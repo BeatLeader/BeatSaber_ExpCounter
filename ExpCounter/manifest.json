@@ -1,0 +1,33 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/bsmg/BSIPA-MetadataFileSchema/master/Schema.json",
+  "id": "ExpCounter",
+  "name": "ExpCounter",
+  "author": "",
+  "version": "0.0.1",
+  "description": "",
+  "gameVersion": "1.40.8",
+  "dependsOn": {
+    "BSIPA": "^4.2.0",
+    "BeatSaberMarkupLanguage": "^1.12.1",
+    "Counters+": "^2.3.10"
+  },
+  "loadAfter": [
+    "Counters+"
+  ],
+  "features": {
+    "CountersPlus.CustomCounter": {
+      "Name": "Experience",
+      "CounterLocation": "ExpCounter.Counters.ExpCounterController",
+      "ConfigDefaults": {
+        "Enabled": true,
+        "Position": "AboveMultiplier",
+        "Distance": -1
+      },
+      "BSML": {
+        "Resource": "ExpCounter.Configuration.BSML.CounterSettings.bsml",
+        "Host": "ExpCounter.Configuration.PluginConfig",
+        "Icon": "ExpCounter.Resources.icon.png"
+      }
+    }
+  }
+}
