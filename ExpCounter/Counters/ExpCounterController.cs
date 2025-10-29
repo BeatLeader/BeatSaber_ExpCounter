@@ -77,6 +77,11 @@ namespace ExpCounter.Counters
         private void ExpCounter_ScoringForNoteStarted(ScoringElement scoringElement)
         {
             if (scoringElement is MissScoringElement && scoringElement.noteData.scoringType == NoteData.ScoringType.NoScore) return;
+            if (LastTime == 0f)
+            {
+                LastTime = scoringElement.time; 
+                return;
+            }
 
             if (scoringElement.time > LastTime)
             {
