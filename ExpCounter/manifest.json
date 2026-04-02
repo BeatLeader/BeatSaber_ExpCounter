@@ -5,11 +5,11 @@
   "author": "",
   "version": "0.0.1",
   "description": "",
-  "gameVersion": "1.40.8",
+  "gameVersion": "1.29.1",
   "dependsOn": {
     "BSIPA": "^4.2.0",
-    "BeatSaberMarkupLanguage": "^1.12.1",
-    "Counters+": "^2.3.10"
+    "BeatSaberMarkupLanguage": "^1.6.0",
+    "Counters+": "^2.3.0"
   },
   "loadAfter": [
     "Counters+"
