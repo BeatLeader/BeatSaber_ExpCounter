@@ -5,7 +5,7 @@
   "info": {
     "name": "ExpCounter",
     "id": "ExpCounter",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "url": null,
     "additionalData": {
       "overrideSoName": "libexpcounter.so"
@@ -87,7 +87,7 @@
     },
     {
       "id": "qounters++",
-      "versionRange": "^1.1.2",
+      "versionRange": "^1.1.4",
       "additionalData": {}
     },
     {

@@ -10,7 +10,7 @@
 #include "metacore/shared/strings.hpp"
 #include "metacore/shared/ui.hpp"
 
-#include "qounters++/shared/options.hpp"
+#include "qounters++/shared/api.hpp"
 
 #include "TMPro/TextMeshProUGUI.hpp"
 
@@ -22,13 +22,12 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-#include <dlfcn.h>
 
 using namespace GlobalNamespace;
 using namespace UnityEngine;
 using namespace HMUI;
 
-// ==================== Left Leader Counter (Qounters++ Premade) ====================
+// ==================== Exp Counter (Qounters++ Premade) ====================
 
 DECLARE_JSON_STRUCT(ExpOpts) {
     VALUE_DEFAULT(int, Decimals, 2);
@@ -105,10 +104,7 @@ static void UpdateExp(UI::Graphic* graphic, UnparsedJSON options) {
     RefreshExpText(text, opts.Decimals);
 }
 
-// ==================== LeftLeader Template (Qounters++ "Add Counter" UI) ====================
-
-static void (*API_AddGroup)(Qounters::Options::Group) = nullptr;
-static void (*API_CloseTemplateModal)() = nullptr;
+// ==================== Exp Template (Qounters++ "Add Counter" UI) ====================
 
 static void ExpTemplateUI(GameObject* parent) {
     static int anchor = (int)Qounters::Options::Group::Anchors::Left;
@@ -123,7 +119,7 @@ static void ExpTemplateUI(GameObject* parent) {
     buttons->spacing = 3;
 
     BSML::Lite::CreateUIButton(buttons, "Cancel", []() {
-        API_CloseTemplateModal();
+        Qounters::API::CloseTemplateModal();
     });
 
     BSML::Lite::CreateUIButton(buttons, "Create", "ActionButton", []() {
@@ -139,88 +135,44 @@ static void ExpTemplateUI(GameObject* parent) {
         premadeOpts.Options = ExpOpts{};
         comp.Options = premadeOpts;
 
-        API_AddGroup(group);
-        API_CloseTemplateModal();
+        Qounters::API::AddGroup(group);
+        Qounters::API::CloseTemplateModal();
     });
 }
 
 // ==================== Qounters++ Init ====================
 
 static void InitQounters() {
-    using RegisterPremadeFn = void(*)(
-        std::string, std::string,
-        Qounters::Types::PremadeFn,
-        Qounters::Types::PremadeUIFn,
-        Qounters::Types::PremadeUpdateFn
-    );
-    using RegisterTemplateFn = void(*)(
-        std::string, std::string,
-        Qounters::Types::TemplateUIFn
-    );
-
-    for (auto& mod : modloader::get_loaded()) {
-        if (mod.info.id != "Qounters++" || !mod.info.version.starts_with("1."))
-            continue;
-
-        auto RegisterPremade = reinterpret_cast<RegisterPremadeFn>(dlsym(mod.handle,
-            "_ZN8Qounters3API15RegisterPremadeE"
-            "NSt6__ndk112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEE"
-            "S7_"
-            "NS1_8functionIFPN11UnityEngine2UI7GraphicEPNS9_10GameObjectE12UnparsedJSONEEE"
-            "NS8_IFvSE_SF_EEE"
-            "NS8_IFvSC_SF_EEE"));
-
-        auto RegisterTemplate = reinterpret_cast<RegisterTemplateFn>(dlsym(mod.handle,
-            "_ZN8Qounters3API16RegisterTemplateE"
-            "NSt6__ndk112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEE"
-            "S7_"
-            "NS1_8functionIFvPN11UnityEngine10GameObjectEEEE"));
-
-        API_AddGroup = reinterpret_cast<decltype(API_AddGroup)>(dlsym(mod.handle,
-            "_ZN8Qounters3API8AddGroupENS_7Options5GroupE"));
-
-        API_CloseTemplateModal = reinterpret_cast<decltype(API_CloseTemplateModal)>(dlsym(mod.handle,
-            "_ZN8Qounters3API18CloseTemplateModalEv"));
-
-        if (!RegisterPremade) {
-            LLCLogger.error("Qounters++ {} found but failed to resolve RegisterPremade.", mod.info.version);
-            return;
-        }
-
-        LLCLogger.info("Qounters++ {} detected, registering Exp counter.", mod.info.version);
-
-        RegisterPremade(MOD_ID, "Exp counter", CreateExp, nullptr, UpdateExp);
-
-        if (RegisterTemplate && API_AddGroup && API_CloseTemplateModal) {
-            RegisterTemplate(MOD_ID, "Exp counter", ExpTemplateUI);
-        } else {
-            LLCLogger.warn("Could not resolve template API, template not registered.");
-        }
-
-        MetaCore::Events::AddCallback(MetaCore::Events::ScoreChanged, []() {
-            float currentTime = MetaCore::Internals::songTime;
-            float timeScale = MetaCore::Internals::songSpeed;
-
-            if (expLastTime == 0.0f) {
-                expLastTime = currentTime;
-            } else if (currentTime > expLastTime) {
-                expDuration += CalculateDuration(expLastTime, currentTime, timeScale);
-                expLastTime = currentTime;
-            }
-
-            for (auto& [text, decimals] : expInstances)
-                RefreshExpText(text, decimals);
-        });
-
-        MetaCore::Events::AddCallback(MetaCore::Events::GameplaySceneEnded, []() {
-            expInstances.clear();
-            expLastTime = 0.0f;
-            expDuration = 0.0f;
-        });
-
+    if (!Qounters::API::IsInstalled()) {
+        LLCLogger.info("Qounters++ not detected.");
         return;
     }
-    LLCLogger.info("Qounters++ not detected.");
+
+    LLCLogger.info("Qounters++ detected, registering Exp counter.");
+
+    Qounters::API::RegisterPremade(MOD_ID, "Exp counter", CreateExp, nullptr, UpdateExp);
+    Qounters::API::RegisterTemplate(MOD_ID, "Exp counter", ExpTemplateUI);
+
+    MetaCore::Events::AddCallback(MetaCore::Events::ScoreChanged, []() {
+        float currentTime = MetaCore::Internals::songTime;
+        float timeScale = MetaCore::Internals::songSpeed;
+
+        if (expLastTime == 0.0f) {
+            expLastTime = currentTime;
+        } else if (currentTime > expLastTime) {
+            expDuration += CalculateDuration(expLastTime, currentTime, timeScale);
+            expLastTime = currentTime;
+        }
+
+        for (auto& [text, decimals] : expInstances)
+            RefreshExpText(text, decimals);
+    });
+
+    MetaCore::Events::AddCallback(MetaCore::Events::GameplaySceneEnded, []() {
+        expInstances.clear();
+        expLastTime = 0.0f;
+        expDuration = 0.0f;
+    });
 }
 
 // ==================== Practice Mode Tweaks ====================
